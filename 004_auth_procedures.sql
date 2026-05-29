@@ -653,6 +653,71 @@ BEGIN
 END $$
 
 
+DROP PROCEDURE IF EXISTS sp_auth_validate_password_policy $$
+CREATE PROCEDURE sp_auth_validate_password_policy(
+  IN p_password VARCHAR(255),
+  IN p_username VARCHAR(60),
+  IN p_email VARCHAR(255),
+  OUT o_code INT,
+  OUT o_message VARCHAR(255),
+  OUT o_data_json LONGTEXT
+)
+BEGIN
+  DECLARE v_errors JSON DEFAULT JSON_ARRAY();
+  DECLARE v_password_lower VARCHAR(255);
+  DECLARE v_username_lower VARCHAR(60);
+  DECLARE v_email_local VARCHAR(255);
+  DECLARE v_password_length INT;
+
+  SET v_password_length = CHAR_LENGTH(p_password);
+  SET v_password_lower = LOWER(IFNULL(p_password, ''));
+  SET v_username_lower = LOWER(IFNULL(p_username, ''));
+  SET v_email_local = LOWER(IFNULL(SUBSTRING_INDEX(p_email, '@', 1), ''));
+
+  IF p_password IS NULL OR v_password_length < 10 THEN
+    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'La contraseña debe tener al menos 10 caracteres');
+  END IF;
+
+  IF p_password IS NOT NULL AND NOT REGEXP_LIKE(p_password, '[A-Z]') THEN
+    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'La contraseña debe contener al menos una letra mayúscula');
+  END IF;
+
+  IF p_password IS NOT NULL AND NOT REGEXP_LIKE(p_password, '[a-z]') THEN
+    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'La contraseña debe contener al menos una letra minúscula');
+  END IF;
+
+  IF p_password IS NOT NULL AND NOT REGEXP_LIKE(p_password, '[0-9]') THEN
+    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'La contraseña debe contener al menos un número');
+  END IF;
+
+  IF p_password IS NOT NULL AND NOT REGEXP_LIKE(p_password, '[^A-Za-z0-9]') THEN
+    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'La contraseña debe contener al menos un carácter especial');
+  END IF;
+
+  IF p_password IS NOT NULL AND REGEXP_LIKE(p_password, '[[:space:]]') THEN
+    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'La contraseña no puede contener espacios en blanco');
+  END IF;
+
+  IF v_username_lower <> '' AND v_password_lower LIKE CONCAT('%', v_username_lower, '%') THEN
+    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'La contraseña no puede contener el nombre de usuario');
+  END IF;
+
+  IF v_email_local <> '' AND v_password_lower LIKE CONCAT('%', v_email_local, '%') THEN
+    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'La contraseña no puede contener la parte local del correo electrónico');
+  END IF;
+
+  IF JSON_LENGTH(v_errors) > 0 THEN
+    SET o_code = 0;
+    SET o_message = 'política de contraseña no cumplida';
+    SET o_data_json = JSON_OBJECT('errors', v_errors);
+  ELSE
+    SET o_code = 1;
+    SET o_message = 'contraseña válida';
+    SET o_data_json = JSON_OBJECT('valid', TRUE);
+  END IF;
+END $$
+
+
 DROP PROCEDURE IF EXISTS sp_permission_list_by_user $$
 CREATE PROCEDURE sp_permission_list_by_user(
   IN p_user_id BIGINT UNSIGNED,

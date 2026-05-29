@@ -450,7 +450,8 @@ CREATE PROCEDURE sp_register_production_result(
   IN p_reference_id BIGINT UNSIGNED,
   IN p_notes VARCHAR(255),
   OUT o_code INT,
-  OUT o_message VARCHAR(255)
+  OUT o_message VARCHAR(255),
+  OUT o_data_json LONGTEXT
 )
 BEGIN
   DECLARE v_sqlstate CHAR(5) DEFAULT '00000';
@@ -482,10 +483,12 @@ BEGIN
     ROLLBACK;
     SET o_code = -1;
     SET o_message = CONCAT('ERROR_SQL ', v_errno, ' ', v_sqlstate, ': ', v_errmsg);
+    SET o_data_json = NULL;
   END;
 
   SET o_code = 0;
   SET o_message = 'operacion completada';
+  SET o_data_json = NULL;
 
   IF p_produced_qty IS NULL OR p_produced_qty <= 0 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'la cantidad producida (produced_qty) debe ser mayor que 0';

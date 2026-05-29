@@ -638,6 +638,8 @@ VALUES
   ('roles.manage', 'Gestionar roles', 'Asignar roles y permisos'),
   ('products.manage', 'Gestionar productos', 'CRUD de productos y categorias'),
   ('materials.manage', 'Gestionar materias primas', 'CRUD de materias primas'),
+  ('customers.manage', 'Gestionar clientes', 'Crear, editar y desactivar clientes'),
+  ('routes.manage', 'Gestionar rutas', 'Crear, editar y asignar repartidores a rutas'),
   ('recipes.manage', 'Gestionar recetas', 'CRUD de recetas e ingredientes'),
   ('orders.manage', 'Gestionar pedidos', 'Crear y administrar pedidos'),
   ('production.manage', 'Gestionar produccion', 'Planificar y registrar produccion'),
@@ -646,6 +648,52 @@ VALUES
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   description = VALUES(description);
+
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+CROSS JOIN permissions p
+WHERE r.code = 'SUPER_ADMIN';
+
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+INNER JOIN permissions p
+  ON p.code IN (
+    'users.manage',
+    'roles.manage',
+    'products.manage',
+    'materials.manage',
+    'customers.manage',
+    'routes.manage',
+    'recipes.manage',
+    'orders.manage',
+    'production.manage',
+    'inventory.manage',
+    'reports.view'
+  )
+WHERE r.code = 'ADMIN';
+
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+INNER JOIN permissions p
+  ON p.code IN ('customers.manage', 'routes.manage', 'orders.manage', 'reports.view')
+WHERE r.code = 'VENTAS';
+
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+INNER JOIN permissions p
+  ON p.code IN ('production.manage', 'recipes.manage', 'reports.view')
+WHERE r.code = 'PRODUCCION';
+
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+INNER JOIN permissions p
+  ON p.code IN ('inventory.manage', 'materials.manage', 'products.manage', 'reports.view')
+WHERE r.code = 'INVENTARIO';
 
 -- ===============================
 -- Recommended DB security baseline

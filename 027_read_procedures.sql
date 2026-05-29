@@ -186,6 +186,171 @@ BEGIN
   SET o_data_json = CONCAT('{"items":', IFNULL(v_items_json, '[]'), '}');
 END $$
 
+DROP PROCEDURE IF EXISTS sp_tax_rate_list $$
+CREATE PROCEDURE sp_tax_rate_list(
+  IN p_only_active TINYINT,
+  OUT o_code INT,
+  OUT o_message VARCHAR(255),
+  OUT o_data_json LONGTEXT
+)
+BEGIN
+  DECLARE v_items_json LONGTEXT;
+
+  SELECT IFNULL(
+           CONCAT('[', GROUP_CONCAT(JSON_OBJECT(
+             'id', t.id,
+             'code', t.code,
+             'name', t.name,
+             'rate_percent', t.rate_percent,
+             'is_active', t.is_active
+           ) ORDER BY t.code SEPARATOR ','), ']'),
+           '[]'
+         )
+    INTO v_items_json
+  FROM tax_rates t
+  WHERE (IFNULL(p_only_active, 0) = 0 OR t.is_active = 1);
+
+  SET o_code = 1;
+  SET o_message = 'tasas de impuesto listadas';
+  SET o_data_json = CONCAT('{"items":', IFNULL(v_items_json, '[]'), '}');
+END $$
+
+DROP PROCEDURE IF EXISTS sp_product_category_list $$
+CREATE PROCEDURE sp_product_category_list(
+  IN p_only_active TINYINT,
+  OUT o_code INT,
+  OUT o_message VARCHAR(255),
+  OUT o_data_json LONGTEXT
+)
+BEGIN
+  DECLARE v_items_json LONGTEXT;
+
+  SELECT IFNULL(
+           CONCAT('[', GROUP_CONCAT(JSON_OBJECT(
+             'id', c.id,
+             'name', c.name,
+             'description', c.description,
+             'is_active', c.is_active
+           ) ORDER BY c.name SEPARATOR ','), ']'),
+           '[]'
+         )
+    INTO v_items_json
+  FROM product_categories c
+  WHERE (IFNULL(p_only_active, 0) = 0 OR c.is_active = 1);
+
+  SET o_code = 1;
+  SET o_message = 'categorias de producto listadas';
+  SET o_data_json = CONCAT('{"items":', IFNULL(v_items_json, '[]'), '}');
+END $$
+
+DROP PROCEDURE IF EXISTS sp_raw_material_category_list $$
+CREATE PROCEDURE sp_raw_material_category_list(
+  IN p_only_active TINYINT,
+  OUT o_code INT,
+  OUT o_message VARCHAR(255),
+  OUT o_data_json LONGTEXT
+)
+BEGIN
+  DECLARE v_items_json LONGTEXT;
+
+  SELECT IFNULL(
+           CONCAT('[', GROUP_CONCAT(JSON_OBJECT(
+             'id', c.id,
+             'name', c.name,
+             'description', c.description,
+             'is_active', c.is_active
+           ) ORDER BY c.name SEPARATOR ','), ']'),
+           '[]'
+         )
+    INTO v_items_json
+  FROM raw_material_categories c
+  WHERE (IFNULL(p_only_active, 0) = 0 OR c.is_active = 1);
+
+  SET o_code = 1;
+  SET o_message = 'categorias de materia prima listadas';
+  SET o_data_json = CONCAT('{"items":', IFNULL(v_items_json, '[]'), '}');
+END $$
+
+DROP PROCEDURE IF EXISTS sp_supplier_list $$
+CREATE PROCEDURE sp_supplier_list(
+  IN p_status VARCHAR(20),
+  IN p_search VARCHAR(120),
+  IN p_page INT,
+  IN p_page_size INT,
+  OUT o_code INT,
+  OUT o_message VARCHAR(255),
+  OUT o_data_json LONGTEXT
+)
+BEGIN
+  DECLARE v_total BIGINT DEFAULT 0;
+  DECLARE v_items_json LONGTEXT;
+  DECLARE v_page INT DEFAULT 1;
+  DECLARE v_page_size INT DEFAULT 20;
+  DECLARE v_offset INT DEFAULT 0;
+
+  SET v_page = IFNULL(NULLIF(p_page, 0), 1);
+  IF v_page < 1 THEN
+    SET v_page = 1;
+  END IF;
+
+  SET v_page_size = IFNULL(NULLIF(p_page_size, 0), 20);
+  IF v_page_size < 1 THEN
+    SET v_page_size = 20;
+  ELSEIF v_page_size > 200 THEN
+    SET v_page_size = 200;
+  END IF;
+
+  SET v_offset = (v_page - 1) * v_page_size;
+
+  SELECT COUNT(*)
+    INTO v_total
+  FROM suppliers s
+  WHERE (p_status IS NULL OR p_status = '' OR s.status = p_status)
+    AND (
+      p_search IS NULL OR p_search = ''
+      OR s.name LIKE CONCAT('%', p_search, '%')
+      OR s.tax_id LIKE CONCAT('%', p_search, '%')
+      OR s.email LIKE CONCAT('%', p_search, '%')
+    );
+
+  SELECT IFNULL(
+           CONCAT('[', GROUP_CONCAT(JSON_OBJECT(
+             'id', x.id,
+             'tax_id', x.tax_id,
+             'name', x.name,
+             'email', x.email,
+             'phone', x.phone,
+             'status', x.status
+           ) ORDER BY x.id SEPARATOR ','), ']'),
+           '[]'
+         )
+    INTO v_items_json
+  FROM (
+    SELECT s.id, s.tax_id, s.name, s.email, s.phone, s.status
+    FROM suppliers s
+    WHERE (p_status IS NULL OR p_status = '' OR s.status = p_status)
+      AND (
+        p_search IS NULL OR p_search = ''
+        OR s.name LIKE CONCAT('%', p_search, '%')
+        OR s.tax_id LIKE CONCAT('%', p_search, '%')
+        OR s.email LIKE CONCAT('%', p_search, '%')
+      )
+    ORDER BY s.id DESC
+    LIMIT v_offset, v_page_size
+  ) x;
+
+  SET o_code = 1;
+  SET o_message = 'proveedores listados';
+  SET o_data_json = CONCAT(
+    '{',
+    '"page":', v_page, ',',
+    '"page_size":', v_page_size, ',',
+    '"total":', v_total, ',',
+    '"items":', IFNULL(v_items_json, '[]'),
+    '}'
+  );
+END $$
+
 DROP PROCEDURE IF EXISTS sp_customer_list $$
 CREATE PROCEDURE sp_customer_list(
   IN p_status VARCHAR(20),
