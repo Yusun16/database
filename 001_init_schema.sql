@@ -241,6 +241,8 @@ CREATE TABLE raw_materials (
   category_id BIGINT UNSIGNED NOT NULL,
   supplier_id BIGINT UNSIGNED NULL,
   unit ENUM('kg','g','lb','l','ml','unit','box','bag') NOT NULL,
+  purchase_package_name VARCHAR(60) NULL,
+  purchase_package_quantity DECIMAL(14,3) NULL,
   unit_cost DECIMAL(12,4) NOT NULL,
   min_stock DECIMAL(12,3) NOT NULL DEFAULT 0,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
@@ -257,6 +259,7 @@ CREATE TABLE raw_materials (
   CONSTRAINT fk_raw_materials_supplier
     FOREIGN KEY (supplier_id) REFERENCES suppliers (id)
     ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT chk_raw_materials_purchase_package_quantity CHECK (purchase_package_quantity IS NULL OR purchase_package_quantity > 0),
   CONSTRAINT chk_raw_materials_unit_cost CHECK (unit_cost >= 0),
   CONSTRAINT chk_raw_materials_min_stock CHECK (min_stock >= 0)
 ) ENGINE=InnoDB;
@@ -469,6 +472,7 @@ CREATE TABLE purchase_orders (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   branch_id BIGINT UNSIGNED NOT NULL,
   supplier_id BIGINT UNSIGNED NOT NULL,
+  invoice_number VARCHAR(80) NULL,
   order_date DATE NOT NULL,
   expected_date DATE NULL,
   status ENUM('draft','sent','partially_received','received','cancelled') NOT NULL DEFAULT 'draft',
