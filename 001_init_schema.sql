@@ -682,7 +682,7 @@ INSERT IGNORE INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 INNER JOIN permissions p
-  ON p.code IN ('customers.manage', 'routes.manage', 'orders.manage', 'reports.view')
+  ON p.code IN ('orders.manage')
 WHERE r.code = 'VENTAS';
 
 INSERT IGNORE INTO role_permissions (role_id, permission_id)

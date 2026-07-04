@@ -72,11 +72,11 @@ SELECT '5_supplier_update' AS test_case, @o_code AS code, @o_message AS message,
 -- =========================
 SET @product_sku = CONCAT('PROD', RIGHT(@suffix, 8));
 
-CALL sp_product_create(@product_sku, 'Producto Smoke', 'Producto prueba', @prod_cat_id, @tax_id, 'unit', 1500.00, 2.000, 1, NULL, @o_code, @o_message, @o_data_json);
+CALL sp_product_create(@product_sku, 'Producto Smoke', 'Producto prueba', @prod_cat_id, @tax_id, 'unit', 1500.00, 2.000, 900.000, 1, NULL, @o_code, @o_message, @o_data_json);
 SELECT '6_product_create' AS test_case, @o_code AS code, @o_message AS message, @o_data_json AS data_json;
 SET @product_id = CAST(JSON_UNQUOTE(JSON_EXTRACT(@o_data_json, '$.product_id')) AS UNSIGNED);
 
-CALL sp_product_update(@product_id, 'Producto Smoke Updated', 'Producto prueba updated', @prod_cat_id, @tax_id, 'unit', 1800.00, 3.000, 1, NULL, @o_code, @o_message, @o_data_json);
+CALL sp_product_update(@product_id, 'Producto Smoke Updated', 'Producto prueba updated', @prod_cat_id, @tax_id, 'unit', 1800.00, 3.000, 950.000, 1, NULL, @o_code, @o_message, @o_data_json);
 SELECT '6_product_update' AS test_case, @o_code AS code, @o_message AS message, @o_data_json AS data_json;
 
 CALL sp_product_set_status(@product_id, 0, NULL, @o_code, @o_message, @o_data_json);
